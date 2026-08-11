@@ -5,8 +5,17 @@ const path = require('node:path');
 const { walk } = require('./fswalk');
 const { extractText, normalize } = require('./text');
 const { collectMentions, summarizeReferences } = require('./references');
+const {
+  labelsFor,
+  normalizeLanguage,
+  riskDetails,
+  signalDetails,
+  summaryFor
+} = require('./i18n');
 
 const DOC_EXTS = new Set(['.docx', '.doc', '.md', '.txt', '.pdf', '.xlsx', '.xls', '.csv']);
+const MANUSCRIPT_PATTERN = /成稿|初稿|定稿|框架|稿|鎴愮|鍒濈|瀹氱|妗嗘灦|绋縷/;
+const SOURCE_EXCLUDE_PATTERN = /成稿|初稿|定稿|框架|写作说明|鎴愮|鍒濈|瀹氱|妗嗘灦|鍐欎綔璇存槑/;
 
 function safeRelative(baseDir, fullPath) {
   return path.relative(baseDir, fullPath).replace(/\\/g, '/');
@@ -15,13 +24,13 @@ function safeRelative(baseDir, fullPath) {
 function scanSources(rootDir) {
   return walk(rootDir)
     .filter((file) => DOC_EXTS.has(path.extname(file).toLowerCase()))
-    .filter((file) => !/成稿|初稿|定稿|框架|写作说明/.test(file));
+    .filter((file) => !SOURCE_EXCLUDE_PATTERN.test(file));
 }
 
 function scanManuscripts(rootDir) {
   return walk(rootDir).filter((file) => {
     const ext = path.extname(file).toLowerCase();
-    return ['.docx', '.doc', '.md', '.txt'].includes(ext) && /成稿|框架|稿|定稿|初稿/.test(file);
+    return ['.docx', '.doc', '.md', '.txt'].includes(ext) && MANUSCRIPT_PATTERN.test(file);
   });
 }
 
@@ -30,14 +39,15 @@ function scoreCoverage(manuscriptText, sourceNames) {
   const matched = [];
   for (const sourceName of sourceNames) {
     const base = sourceName.toLowerCase().replace(/\.[^.]+$/, '');
-    const tokens = base.split(/[_\s\-()（）]+/).filter(Boolean);
+    const tokens = base.split(/[_\s\-()（）锛堬級]+/).filter(Boolean);
     const hit = tokens.some((token) => token.length >= 3 && text.includes(token.toLowerCase()));
     if (hit) matched.push(sourceName);
   }
-  return matched;
+  return [...new Set(matched)];
 }
 
-function auditProject(rootDir) {
+function auditProject(rootDir, options = {}) {
+  const language = normalizeLanguage(options.language);
   const manuscripts = scanManuscripts(rootDir);
   const sources = scanSources(rootDir);
   const sourceNames = sources.map((file) => path.basename(file));
@@ -60,29 +70,35 @@ function auditProject(rootDir) {
       references: references.length,
       mentionCount: mentions.length,
       matchedSources: matchedSources.slice(0, 12),
-      missingSignals
+      missingSignals,
+      signalDetails: signalDetails(missingSignals, language)
     };
   });
 
   const usedSourceNames = new Set(manuscriptReports.flatMap((r) => r.matchedSources));
   const unusedSources = sourceNames.filter((name) => !usedSourceNames.has(name));
 
-  const risks = [];
+  const riskCodes = [];
   if (manuscriptReports.some((r) => r.missingSignals.includes('no_reference_section'))) {
-    risks.push('at least one manuscript lacks an explicit reference block');
+    riskCodes.push('missing_reference_blocks');
   }
   if (unusedSources.length > Math.max(5, sourceNames.length * 0.4)) {
-    risks.push('large part of source library is not visibly consumed by manuscript text');
+    riskCodes.push('low_source_consumption');
   }
 
-  return {
+  const report = {
     rootDir,
+    language,
+    labels: labelsFor(language),
     manuscriptCount: manuscriptReports.length,
     sourceCount: sourceNames.length,
     manuscripts: manuscriptReports.sort((a, b) => a.file.localeCompare(b.file)),
     unusedSources: unusedSources.slice(0, 30),
-    risks
+    riskCodes,
+    risks: riskDetails(riskCodes, language)
   };
+  report.summary = summaryFor(report, language);
+  return report;
 }
 
 function writeReport(report, outputPath) {

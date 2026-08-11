@@ -3,7 +3,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-const DEFAULT_SKIP = new Set(['node_modules', '.git', 'reports', 'tmp']);
+const DEFAULT_SKIP = new Set(['node_modules', '.git', 'reports', 'tmp', 'manuscript-evidence-auditor']);
 
 function walk(rootDir, options = {}) {
   const skip = new Set([...(options.skip || []), ...DEFAULT_SKIP]);
