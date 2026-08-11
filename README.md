@@ -1,46 +1,34 @@
-# Manuscript Evidence Auditor
+# 文稿证据链审计工具
 
-An evidence-chain audit CLI for chapter drafts and source libraries.
+用于章节稿件和资料库的证据链审计 CLI。
 
-It does three things:
+它做三件事：
 
-1. Scans manuscript folders and reference libraries
-2. Detects citation traces, footnotes, and source sections
-3. Emits coverage, unused sources, and risk signals
+1. 扫描稿件目录和参考资料目录
+2. 识别引用痕迹、脚注痕迹和来源区块
+3. 输出覆盖情况、未覆盖资料和风险提示
 
-## Run
+## 运行
 
-Requires Node.js 18+.
+需要 Node.js 18+。
 
 ```powershell
 npm test
 node src/index.js "D:\青岛双百上合项目组"
 ```
 
-## Bilingual mode / 双语模式
-
-Use `--lang bilingual` to emit English and Chinese labels, summaries, risk details and manuscript signal details in the JSON report.
-
-使用 `--lang bilingual` 可以在 JSON 报告中同时输出英文和中文的字段标签、摘要、风险说明和稿件问题说明。
-
-```powershell
-node src/index.js "D:\青岛双百上合项目组" --lang bilingual
-```
-
-Supported values: `en`, `zh`, `bilingual`.
-
-Default output:
+默认输出：
 
 ```text
 <root>\reports\evidence-audit.json
 ```
 
-## Design
+## 设计
 
-- `src/fswalk.js` handles directory traversal
-- `src/text.js` handles basic text extraction
-- `src/references.js` handles reference trace detection
-- `src/i18n.js` handles bilingual labels and messages
-- `src/audit.js` handles report assembly
+- `src/fswalk.js` 负责目录遍历
+- `src/text.js` 负责基础文本抽取
+- `src/references.js` 负责引用痕迹识别
+- `src/i18n.js` 负责中文标签和消息
+- `src/audit.js` 负责报告汇总
 
-The project is read-only and never mutates the original drafts or source files.
+工具为只读模式，不会修改原始稿件和资料。

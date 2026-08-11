@@ -28,17 +28,3 @@ test('audits manuscripts and writes report', () => {
   writeReport(report, output);
   assert.equal(fs.existsSync(output), true);
 });
-
-test('supports bilingual audit output', () => {
-  const root = makeTempProject();
-  const report = auditProject(root, { language: 'bilingual' });
-  assert.equal(report.language, 'bilingual');
-  assert.equal(report.summary.en.includes('manuscripts'), true);
-  assert.equal(report.summary.zh.includes('稿件'), true);
-  assert.equal(report.labels.en.manuscriptCount, 'Manuscripts');
-  assert.equal(report.labels.zh.manuscriptCount, '稿件数量');
-  assert.equal(Array.isArray(report.manuscripts[0].signalDetails), true);
-  report.manuscripts[0].signalDetails.forEach((item) => {
-    assert.equal(typeof item.code, 'string');
-  });
-});

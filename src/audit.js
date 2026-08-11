@@ -7,7 +7,6 @@ const { extractText, normalize } = require('./text');
 const { collectMentions, summarizeReferences } = require('./references');
 const {
   labelsFor,
-  normalizeLanguage,
   riskDetails,
   signalDetails,
   summaryFor
@@ -46,8 +45,7 @@ function scoreCoverage(manuscriptText, sourceNames) {
   return [...new Set(matched)];
 }
 
-function auditProject(rootDir, options = {}) {
-  const language = normalizeLanguage(options.language);
+function auditProject(rootDir) {
   const manuscripts = scanManuscripts(rootDir);
   const sources = scanSources(rootDir);
   const sourceNames = sources.map((file) => path.basename(file));
@@ -71,7 +69,7 @@ function auditProject(rootDir, options = {}) {
       mentionCount: mentions.length,
       matchedSources: matchedSources.slice(0, 12),
       missingSignals,
-      signalDetails: signalDetails(missingSignals, language)
+      signalDetails: signalDetails(missingSignals)
     };
   });
 
@@ -88,16 +86,16 @@ function auditProject(rootDir, options = {}) {
 
   const report = {
     rootDir,
-    language,
-    labels: labelsFor(language),
+    language: 'zh',
+    labels: labelsFor(),
     manuscriptCount: manuscriptReports.length,
     sourceCount: sourceNames.length,
     manuscripts: manuscriptReports.sort((a, b) => a.file.localeCompare(b.file)),
     unusedSources: unusedSources.slice(0, 30),
     riskCodes,
-    risks: riskDetails(riskCodes, language)
+    risks: riskDetails(riskCodes)
   };
-  report.summary = summaryFor(report, language);
+  report.summary = summaryFor(report);
   return report;
 }
 
